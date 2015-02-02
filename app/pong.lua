@@ -17,8 +17,9 @@ shield = require("starter")
 
 LEDLocs = {[3] = "red2", [2] = "red", [1] = "green", [0] = "blue"}
 
+LEDBlinkers = {[3] = nil, [2] = nil, [1] = nil, [0] = nil}
+
 Pong = {}
-flag = 0 
 ballLoc = 2
 startDir = 1
 ballDir = 1
@@ -60,24 +61,6 @@ pressedButton = function(LEDLoc)
 	end 
 end
 
----blinker---
---[[Used to blink
-LED of game winner]]-- 
-function blinker(color)
-   local state = 0
-   return function ()
-      if state  == 1 then
-        -- print ("blink on", state)
-      	 shield.LED.on(color)
-	else
-        -- print ("blink off", state)
-      	 shield.LED.off(color)
-	 end
-      state=1-state
-    end
-end
-
-
 ---updateGame--- 
 --[[ used to update the 
 status of game when player 
@@ -112,42 +95,34 @@ when each round ends]]--
 updateScore = function()
 	if (score == 4) then
 		for i = 1, score-1, 1 do
-			shield.LED.on(LEDLocs[i])
-		end 
-		blink =	storm.os.invokePeriodically(500*storm.os.MILLISECOND, blinker(LEDLocs[0]))
-		flag = 1
+			LEDBlinkers[i] = storm.os.invokePeriodically(500*storm.os.MILLISECOND, function() shield.LED.flash(LEDLocs[i], 250) end);
+		end
+		LEDBlinkers[0] = storm.os.invokePeriodically(200*storm.os.MILLISECOND, function() shield.LED.flash(LEDLocs[0], 100) end)
 	elseif (score == -4) then
 		for i = -2, score, -1 do
-			shield.LED.on(LEDLocs[i+4])
+			LEDBlinkers[i+4] = storm.os.invokePeriodically(500*storm.os.MILLISECOND,function () shield.LED.flash(LEDLocs[i+4], 250) end);
 		end
-		blink = storm.os.invokePeriodically(500*storm.os.MILLISECOND, blinker(LEDLocs[3])) 
-		flag = 1
+		LEDBlinkers[3] = storm.os.invokePeriodically(200*storm.os.MILLISECOND, function() shield.LED.flash(LEDLocs[3], 100) end) 
 	elseif (score == 0) then
-		shield.LED.on(LEDLocs[1])
-		shield.LED.on(LEDLocs[2])
+		LEDBlinkers[1] = storm.os.invokePeriodically(500*storm.os.MILLISECOND,function() shield.LED.flash(LEDLocs[1], 250) end);
+		LEDBlinkers[2] = storm.os.invokePeriodically(500*storm.os.MILLISECOND,function() shield.LED.flash(LEDLocs[2], 250) end);
 	elseif (score > 0) then
 		for i = 0, score-1, 1 do
-			shield.LED.on(LEDLocs[i])
+			LEDBlinkers[i] = storm.os.invokePeriodically(500*storm.os.MILLISECOND, function() shield.LED.flash(LEDLocs[i], 250) end);
 		end
 	else
 		for i = -1, score, -1 do
-			shield.LED.on(LEDLocs[i+4])
+			LEDBlinkers[i+4] = storm.os.invokePeriodically(500*storm.os.MILLISECOND,function() shield.LED.flash(LEDLocs[i+4], 250) end);
 		end
 	end
 end 
 
 ---startGame---
---[[begins the game. flag is used
-to stop led blinking after 
-invokePeriodically is used]]---
+--[[begins the game]]---
 startGame = function() 	
 	duration=1000
 	startDir= -1 *startDir 
 	ballDir = startDir 
-	if (flag == 1) then 
-	storm.os.cancel(blink)
-	end 
-	flag = 0 
 	if (ballDir == -1) then 
 		ballLoc = 2
 	else 
@@ -155,7 +130,11 @@ startGame = function()
 	end 
 	shield.LED.start() 
 	for i = 0, 3, 1 do 
-		shield.LED.off(LEDLocs[i]) 
+		if(LEDBlinkers[i] ~= nil) then
+			storm.os.cancel(LEDBlinkers[i])
+			LEDBlinkers[i]=nil
+		end
+		shield.LED.off(LEDLocs[i])
 	end
 	print('starting game')
 	Pong.btn3Listener = shield.Button.whenever(3,storm.io.FALLING, function() pressedButton(3) end);
