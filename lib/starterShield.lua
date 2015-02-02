@@ -32,6 +32,7 @@ end
 
 LED.stop = function()
 -- configure pins to a low power state
+   storm.io.set(0,storm.io.D2,storm.io.D3,storm.io.D4,storm.io.D5)
 end
 
 -- LED color functions
@@ -48,7 +49,10 @@ end
 --    this is dull for green, but bright for read and blue
 --    assumes cord.enter_loop() is in effect to schedule filaments
 LED.flash=function(color,duration)
--- TODO
+    duration = duration or 10
+    
+    LED.on(color)
+    storm.os.invokeLater(duration*storm.os.MILLISECOND, function() LED.off(color) end)
 end
 
 ----------------------------------------------
@@ -57,12 +61,30 @@ end
 ----------------------------------------------
 local Buzz = {}
 
+Buzz.pin = "D6"
+Buzz.running = false
+
 Buzz.go = function(delay)
--- TODO
+	delay = delay or 0
+	storm.io.set_mode(storm.io.OUTPUT,storm.io[Buzz.pin])
+	Buzz.running = true
+	cord.new(function() 
+		while(Buzz.running ~= false) do
+			--delta waveform
+			storm.io.set(1,storm.io[Buzz.pin])
+			storm.io.set(0,storm.io[Buzz.pin])
+			if(delay > 0) then
+				cord.await(storm.os.invokeLater,delay*storm.os.MILLISECOND)
+			else 
+				cord.yield()
+			end
+
+		end
+	end)
 end
 
 Buzz.stop = function()
--- TODO
+	Buzz.running = false
 end
 
 ----------------------------------------------
@@ -71,14 +93,17 @@ end
 ----------------------------------------------
 local Button = {}
 
+Button.buttons = {[1] = "D9", [2] = "D10", [3] = "D11" }
+
 Button.start = function() 
--- TODO
+	storm.io.set_mode(storm.io.INPUT, storm.io.D9, storm.io.D10, storm.io.D11)
+	storm.io.set_pull(storm.io.PULL_UP, storm.io.D9, storm.io.D10, storm.io.D11)
 end
 
 -- Get the current state of the button
 -- can be used when poling buttons
 Button.pressed = function(button) 
--- TODO
+	return storm.io.get(storm.io[Button.buttons[button]]);
 end
 
 -------------------
@@ -88,20 +113,21 @@ end
 --   FALLING - when a button is pressed
 --   RISING - when it is released
 --   CHANGE - either case
--- Only one transition can be in effect for a button
+-- only one transition can be in effect for a button
 -- must be used with cord.enter_loop
 -- none of these are debounced.
 -------------------
+
 Button.whenever = function(button, transition, action)
--- TODO
+	return storm.io.watch_all(transition, storm.io[Button.buttons[button]], action)
 end
 
 Button.when = function(button, transition, action)
--- TODO
+	return storm.io.watch_single(transition, storm.io[Button.buttons[button]], action)
 end
 
 Button.wait = function(button)
--- TODO
+	
 end
 
 ----------------------------------------------
