@@ -22,7 +22,7 @@ ipaddrs = string.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x::%02x%02x:%02x%02x:
 
 print("ip addr", ipaddrs)
 print("node id", storm.os.nodeid())
-cport = 49152
+cport = 1525
 
 -- create echo server as handler
 server = function()
@@ -64,8 +64,6 @@ end
 
 -- button press runs client
 btn1:whenever("RISING",function() 
-		print("Run client")
-		client() 
 		      end)
 
 -- enable a shell
